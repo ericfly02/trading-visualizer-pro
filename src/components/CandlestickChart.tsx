@@ -1,6 +1,6 @@
 
 import React, { useRef, useEffect, useState } from 'react';
-import { createChart, IChartApi, ISeriesApi, CandlestickSeries } from 'lightweight-charts';
+import { createChart, ColorType, LineStyle, Time } from 'lightweight-charts';
 import { CandlestickData, Trade, BacktestData } from '@/lib/types';
 import { extractCandlestickData, detectTimeframe } from '@/lib/utils/dataUtils';
 import { Tooltip } from 'react-tooltip';
@@ -13,8 +13,8 @@ interface CandlestickChartProps {
 
 const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex, isPlaying }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const [chart, setChart] = useState<IChartApi | null>(null);
-  const [series, setSeries] = useState<ISeriesApi<"Candlestick"> | null>(null);
+  const [chart, setChart] = useState<any | null>(null);
+  const [series, setSeries] = useState<any | null>(null);
   const [candleData, setCandleData] = useState<CandlestickData[]>([]);
   const [timeframe, setTimeframe] = useState<string>('');
   
@@ -24,7 +24,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
     
     const chartOptions = {
       layout: {
-        background: { color: 'rgba(13, 17, 23, 0)' },
+        background: { type: ColorType.Solid, color: 'rgba(13, 17, 23, 0)' },
         textColor: '#C9D1D9',
       },
       grid: {
@@ -41,14 +41,14 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
         vertLine: {
           color: '#58A6FF',
           width: 1,
-          style: 1,
+          style: LineStyle.Solid,
           visible: true,
           labelVisible: true,
         },
         horzLine: {
           color: '#58A6FF',
           width: 1,
-          style: 1,
+          style: LineStyle.Solid,
           visible: true,
           labelVisible: true,
         },
@@ -119,8 +119,8 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
     
     if (startIndex <= endIndex) {
       chart.timeScale().setVisibleRange({
-        from: candleData[startIndex].time as number,
-        to: candleData[endIndex].time as number,
+        from: candleData[startIndex].time,
+        to: candleData[endIndex].time,
       });
     }
   }, [chart, candleData, currentIndex]);
@@ -131,11 +131,10 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
     
     const visibleTrades = data.trade_history.filter(trade => {
       const openTime = new Date(trade.open_time).getTime() / 1000;
-      const closeTime = new Date(trade.close_time).getTime() / 1000;
       
       // Show trades that have opened by the current index
       if (currentIndex < 0 || currentIndex >= candleData.length) return false;
-      const currentTime = candleData[currentIndex].time as number;
+      const currentTime = new Date(candleData[currentIndex].time).getTime() / 1000;
       
       return openTime <= currentTime;
     });
@@ -144,11 +143,11 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
       <>
         {visibleTrades.map((trade, index) => {
           const openTimeIndex = candleData.findIndex(
-            candle => Math.abs((candle.time as number) - new Date(trade.open_time).getTime() / 1000) < 60
+            candle => Math.abs(new Date(candle.time).getTime() / 1000 - new Date(trade.open_time).getTime() / 1000) < 60
           );
           
           const closeTimeIndex = candleData.findIndex(
-            candle => Math.abs((candle.time as number) - new Date(trade.close_time).getTime() / 1000) < 60
+            candle => Math.abs(new Date(candle.time).getTime() / 1000 - new Date(trade.close_time).getTime() / 1000) < 60
           );
           
           // Only render entry markers for now (trade markers would be added in a full implementation)
@@ -187,9 +186,9 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
         <div className="text-sm text-trading-muted">
           {currentIndex >= 0 && currentIndex < candleData.length && (
             <span>
-              {new Date(candleData[currentIndex].time as number * 1000).toLocaleDateString()} 
+              {new Date(candleData[currentIndex].time).toLocaleDateString()} 
               {' '}
-              {new Date(candleData[currentIndex].time as number * 1000).toLocaleTimeString()}
+              {new Date(candleData[currentIndex].time).toLocaleTimeString()}
             </span>
           )}
         </div>

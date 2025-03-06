@@ -1,6 +1,6 @@
 
 import React, { useRef, useEffect, useState } from 'react';
-import { createChart, IChartApi, ISeriesApi, LineData } from 'lightweight-charts';
+import { createChart, ColorType, LineStyle } from 'lightweight-charts';
 import { BacktestData } from '@/lib/types';
 import { getBalanceHistory, formatCurrency } from '@/lib/utils/dataUtils';
 
@@ -11,9 +11,9 @@ interface BalanceChartProps {
 
 const BalanceChart: React.FC<BalanceChartProps> = ({ data, currentIndex }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const [chart, setChart] = useState<IChartApi | null>(null);
-  const [series, setSeries] = useState<ISeriesApi<"Line"> | null>(null);
-  const [balanceData, setBalanceData] = useState<LineData[]>([]);
+  const [chart, setChart] = useState<any | null>(null);
+  const [series, setSeries] = useState<any | null>(null);
+  const [balanceData, setBalanceData] = useState<any[]>([]);
   const [currentBalance, setCurrentBalance] = useState<number>(data.starting_balance);
   const [profitLoss, setProfitLoss] = useState<number>(0);
   
@@ -23,7 +23,7 @@ const BalanceChart: React.FC<BalanceChartProps> = ({ data, currentIndex }) => {
     
     const chartOptions = {
       layout: {
-        background: { color: 'rgba(13, 17, 23, 0)' },
+        background: { type: ColorType.Solid, color: 'rgba(13, 17, 23, 0)' },
         textColor: '#C9D1D9',
       },
       grid: {
@@ -86,7 +86,7 @@ const BalanceChart: React.FC<BalanceChartProps> = ({ data, currentIndex }) => {
     
     // Convert to the format expected by lightweight-charts
     const formattedData = balanceHistory.map(item => ({
-      time: new Date(item.time).getTime() / 1000,
+      time: new Date(item.time).toISOString(),
       value: item.balance,
     }));
     

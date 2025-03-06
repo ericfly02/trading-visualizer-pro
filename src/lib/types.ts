@@ -1,4 +1,3 @@
-
 export interface OHLCData {
   time: string;
   bond_open: number;
