@@ -65,6 +65,10 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
     // For lightweight-charts v5+
     const candleSeries = newChart.addSeries({
       type: 'Candlestick',
+      priceFormat: {
+        type: 'price',
+        precision: 2,
+      },
       upColor: '#25C685',
       downColor: '#EF5350',
       borderVisible: false,

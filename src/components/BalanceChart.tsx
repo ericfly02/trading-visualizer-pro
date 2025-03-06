@@ -52,10 +52,15 @@ const BalanceChart: React.FC<BalanceChartProps> = ({ data, currentIndex }) => {
     // For lightweight-charts v5+
     const lineSeries = newChart.addSeries({
       type: 'Area',
-      lineColor: '#58A6FF',
+      lineStyle: 0,
+      lineWidth: 2,
+      color: '#58A6FF',
+      priceFormat: {
+        type: 'price',
+        precision: 2,
+      },
       topColor: 'rgba(88, 166, 255, 0.4)',
       bottomColor: 'rgba(88, 166, 255, 0.1)',
-      lineWidth: 2,
       lastValueVisible: false,
       priceLineVisible: false,
     });
