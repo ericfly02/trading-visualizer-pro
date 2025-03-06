@@ -65,8 +65,8 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
     // For lightweight-charts v5+, we need to use addSeries with appropriate parameters
     const candleSeries = newChart.addSeries({
       type: 'Candlestick', // Capitalized 'Candlestick' instead of 'candlestick'
-      upColor: '#25C685',
-      downColor: '#EF5350',
+      bullColor: '#25C685', // Use 'bullColor' instead of 'upColor'
+      bearColor: '#EF5350', // Use 'bearColor' instead of 'downColor'
       borderVisible: false,
       wickUpColor: '#25C685',
       wickDownColor: '#EF5350',
