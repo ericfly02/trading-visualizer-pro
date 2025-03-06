@@ -1,6 +1,5 @@
-
 import React, { useRef, useEffect, useState } from 'react';
-import { createChart, ColorType, LineStyle } from 'lightweight-charts';
+import { createChart, ColorType } from 'lightweight-charts';
 import { BacktestData } from '@/lib/types';
 import { getBalanceHistory, formatCurrency } from '@/lib/utils/dataUtils';
 
@@ -49,8 +48,10 @@ const BalanceChart: React.FC<BalanceChartProps> = ({ data, currentIndex }) => {
       height: 150,
     });
     
-    const lineSeries = newChart.addLineSeries({
-      color: '#58A6FF',
+    const lineSeries = newChart.addAreaSeries({
+      lineColor: '#58A6FF',
+      topColor: 'rgba(88, 166, 255, 0.4)',
+      bottomColor: 'rgba(88, 166, 255, 0.1)',
       lineWidth: 2,
       lastValueVisible: false,
       priceLineVisible: false,
@@ -86,7 +87,7 @@ const BalanceChart: React.FC<BalanceChartProps> = ({ data, currentIndex }) => {
     
     // Convert to the format expected by lightweight-charts
     const formattedData = balanceHistory.map(item => ({
-      time: new Date(item.time).toISOString(),
+      time: new Date(item.time).getTime() / 1000,
       value: item.balance,
     }));
     

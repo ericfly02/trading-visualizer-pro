@@ -1,3 +1,4 @@
+
 export interface OHLCData {
   time: string;
   bond_open: number;
@@ -50,7 +51,7 @@ export interface BacktestData {
 }
 
 export interface CandlestickData {
-  time: string;
+  time: number; // Unix timestamp in seconds for lightweight-charts v5+
   open: number;
   high: number;
   close: number;

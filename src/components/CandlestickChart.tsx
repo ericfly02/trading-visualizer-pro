@@ -1,6 +1,5 @@
-
 import React, { useRef, useEffect, useState } from 'react';
-import { createChart, ColorType, LineStyle, Time } from 'lightweight-charts';
+import { createChart, ColorType, LineStyle } from 'lightweight-charts';
 import { CandlestickData, Trade, BacktestData } from '@/lib/types';
 import { extractCandlestickData, detectTimeframe } from '@/lib/utils/dataUtils';
 import { Tooltip } from 'react-tooltip';
@@ -99,13 +98,20 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
     if (!data || !data.ohlc_history || !data.ohlc_history.length) return;
     
     const candles = extractCandlestickData(data.ohlc_history);
-    setCandleData(candles);
+    
+    // Ensure time is in the correct format (unix timestamp in seconds)
+    const formattedCandles = candles.map(candle => ({
+      ...candle,
+      time: Math.floor(new Date(candle.time).getTime() / 1000)
+    }));
+    
+    setCandleData(formattedCandles);
     
     const tf = detectTimeframe(data.ohlc_history);
     setTimeframe(tf);
     
     if (series) {
-      series.setData(candles);
+      series.setData(formattedCandles);
     }
   }, [data, series]);
   
@@ -186,9 +192,9 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
         <div className="text-sm text-trading-muted">
           {currentIndex >= 0 && currentIndex < candleData.length && (
             <span>
-              {new Date(candleData[currentIndex].time).toLocaleDateString()} 
+              {new Date(candleData[currentIndex].time * 1000).toLocaleDateString()} 
               {' '}
-              {new Date(candleData[currentIndex].time).toLocaleTimeString()}
+              {new Date(candleData[currentIndex].time * 1000).toLocaleTimeString()}
             </span>
           )}
         </div>
