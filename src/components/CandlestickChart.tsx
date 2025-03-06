@@ -1,5 +1,6 @@
+
 import React, { useRef, useEffect, useState } from 'react';
-import { createChart, ColorType, LineStyle } from 'lightweight-charts';
+import { createChart, ColorType } from 'lightweight-charts';
 import { CandlestickData, Trade, BacktestData } from '@/lib/types';
 import { extractCandlestickData, detectTimeframe } from '@/lib/utils/dataUtils';
 import { Tooltip } from 'react-tooltip';
@@ -39,15 +40,13 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
         mode: 1,
         vertLine: {
           color: '#58A6FF',
-          width: 1,
-          style: LineStyle.Solid,
+          style: 0, // Use numeric value instead of LineStyle enum
           visible: true,
           labelVisible: true,
         },
         horzLine: {
           color: '#58A6FF',
-          width: 1,
-          style: LineStyle.Solid,
+          style: 0, // Use numeric value instead of LineStyle enum
           visible: true,
           labelVisible: true,
         },
@@ -63,7 +62,9 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
       height: 400,
     });
     
-    const candleSeries = newChart.addCandlestickSeries({
+    // For lightweight-charts v5+, we need to use addSeries with appropriate parameters
+    const candleSeries = newChart.addSeries({
+      type: 'candlestick',
       upColor: '#25C685',
       downColor: '#EF5350',
       borderVisible: false,
@@ -140,7 +141,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
       
       // Show trades that have opened by the current index
       if (currentIndex < 0 || currentIndex >= candleData.length) return false;
-      const currentTime = new Date(candleData[currentIndex].time).getTime() / 1000;
+      const currentTime = candleData[currentIndex].time;
       
       return openTime <= currentTime;
     });
@@ -149,11 +150,11 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
       <>
         {visibleTrades.map((trade, index) => {
           const openTimeIndex = candleData.findIndex(
-            candle => Math.abs(new Date(candle.time).getTime() / 1000 - new Date(trade.open_time).getTime() / 1000) < 60
+            candle => Math.abs(candle.time - new Date(trade.open_time).getTime() / 1000) < 60
           );
           
           const closeTimeIndex = candleData.findIndex(
-            candle => Math.abs(new Date(candle.time).getTime() / 1000 - new Date(trade.close_time).getTime() / 1000) < 60
+            candle => Math.abs(candle.time - new Date(trade.close_time).getTime() / 1000) < 60
           );
           
           // Only render entry markers for now (trade markers would be added in a full implementation)

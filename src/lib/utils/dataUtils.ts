@@ -55,7 +55,7 @@ export const validateBacktestData = (data: any): boolean => {
  */
 export const extractCandlestickData = (ohlcHistory: OHLCData[]): CandlestickData[] => {
   return ohlcHistory.map(item => ({
-    time: new Date(item.time).toISOString(), // Use ISO string format
+    time: Math.floor(new Date(item.time).getTime() / 1000), // Convert to Unix timestamp in seconds
     open: item.etf_open,
     high: item.etf_high,
     low: item.etf_low,
