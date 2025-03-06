@@ -50,7 +50,7 @@ const BalanceChart: React.FC<BalanceChartProps> = ({ data, currentIndex }) => {
     });
     
     // For lightweight-charts v5+
-    const lineSeries = newChart.addAreaSeries({
+    const lineSeries = newChart.addSeries('Area', {
       lineColor: '#58A6FF',
       topColor: 'rgba(88, 166, 255, 0.4)',
       bottomColor: 'rgba(88, 166, 255, 0.1)',
