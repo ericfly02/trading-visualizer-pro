@@ -63,7 +63,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
     });
     
     // For lightweight-charts v5+
-    const candleSeries = newChart.addSeries('Candlestick', {
+    const candleSeries = newChart.addCandlestickSeries({
       upColor: '#25C685',
       downColor: '#EF5350',
       borderVisible: false,
