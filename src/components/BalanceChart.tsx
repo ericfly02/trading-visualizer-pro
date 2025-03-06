@@ -1,6 +1,5 @@
-
 import React, { useRef, useEffect, useState } from 'react';
-import { createChart, ColorType } from 'lightweight-charts';
+import { ChartOptions, createChart, DeepPartial, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { BacktestData } from '@/lib/types';
 import { getBalanceHistory, formatCurrency } from '@/lib/utils/dataUtils';
 
@@ -11,10 +10,10 @@ interface BalanceChartProps {
 
 const BalanceChart: React.FC<BalanceChartProps> = ({ data, currentIndex }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const [chart, setChart] = useState<any | null>(null);
-  const [series, setSeries] = useState<any | null>(null);
-  const [balanceData, setBalanceData] = useState<any[]>([]);
-  const [currentBalance, setCurrentBalance] = useState<number>(data.starting_balance);
+  const [chart, setChart] = useState<IChartApi | null>(null);
+  const [series, setSeries] = useState<ISeriesApi<"Area"> | null>(null);
+  const [balanceData, setBalanceData] = useState<Array<{ time: number; value: number }>>([]);
+  const [currentBalance, setCurrentBalance] = useState<number>(data?.starting_balance || 0);
   const [profitLoss, setProfitLoss] = useState<number>(0);
   
   // Initialize chart
@@ -23,7 +22,7 @@ const BalanceChart: React.FC<BalanceChartProps> = ({ data, currentIndex }) => {
     
     const chartOptions = {
       layout: {
-        background: { type: ColorType.Solid, color: 'rgba(13, 17, 23, 0)' },
+        background: { type: 'solid', color: 'rgba(13, 17, 23, 0)' }, // Use 'solid' directly
         textColor: '#C9D1D9',
       },
       grid: {
@@ -47,22 +46,13 @@ const BalanceChart: React.FC<BalanceChartProps> = ({ data, currentIndex }) => {
       ...chartOptions,
       width: chartContainerRef.current.clientWidth,
       height: 150,
-    });
+    } as DeepPartial<ChartOptions>);
     
-    // For lightweight-charts v5+
-    const lineSeries = newChart.addSeries({
-      type: 'Area',
-      lineStyle: 0,
+    const lineSeries = newChart.addAreaSeries({
       lineWidth: 2,
-      color: '#58A6FF',
-      priceFormat: {
-        type: 'price',
-        precision: 2,
-      },
+      lineColor: '#58A6FF',
       topColor: 'rgba(88, 166, 255, 0.4)',
       bottomColor: 'rgba(88, 166, 255, 0.1)',
-      lastValueVisible: false,
-      priceLineVisible: false,
     });
     
     setChart(newChart);
@@ -91,45 +81,56 @@ const BalanceChart: React.FC<BalanceChartProps> = ({ data, currentIndex }) => {
   useEffect(() => {
     if (!data) return;
     
-    const balanceHistory = getBalanceHistory(data);
-    
-    // Convert to the format expected by lightweight-charts
-    const formattedData = balanceHistory.map(item => ({
-      time: new Date(item.time).getTime() / 1000,
-      value: item.balance,
-    }));
-    
-    setBalanceData(formattedData);
-    
-    if (series) {
-      series.setData(formattedData);
+    try {
+      const balanceHistory = getBalanceHistory(data);
+      
+      // Convert to the format expected by lightweight-charts
+      const formattedData = balanceHistory.map(item => ({
+        time: Math.floor(new Date(item.time).getTime() / 1000),
+        value: item.balance,
+      }));
+      
+      setBalanceData(formattedData);
+      
+      if (series && formattedData.length > 0) {
+        series.setData(formattedData);
+      }
+    } catch (error) {
+      console.error("Error processing balance data:", error);
     }
   }, [data, series]);
   
   // Update current balance based on index
   useEffect(() => {
-    if (!data || !data.trade_history || !data.ohlc_history || currentIndex < 0) {
+    if (!data || !data.trade_history || !data.ohlc_history) {
       setCurrentBalance(data?.starting_balance || 0);
       setProfitLoss(0);
       return;
     }
     
-    // Find the most recent trade that would have executed by this point
-    const tradesExecuted = data.trade_history.filter((trade, i) => {
-      const tradeCloseTime = new Date(trade.close_time).getTime();
+    try {
+      // Find the most recent trade that would have executed by this point
+      const tradesExecuted = data.trade_history.filter((trade, i) => {
+        if (!trade.close_time) return false;
+        const tradeCloseTime = new Date(trade.close_time).getTime();
+        
+        if (currentIndex < 0 || currentIndex >= data.ohlc_history.length) return false;
+        
+        const currentCandleTime = new Date(data.ohlc_history[currentIndex].time).getTime();
+        return tradeCloseTime <= currentCandleTime;
+      });
       
-      if (currentIndex >= data.ohlc_history.length) return true;
-      
-      const currentCandleTime = new Date(data.ohlc_history[currentIndex].time).getTime();
-      return tradeCloseTime <= currentCandleTime;
-    });
-    
-    if (tradesExecuted.length > 0) {
-      const latestTrade = tradesExecuted[tradesExecuted.length - 1];
-      setCurrentBalance(latestTrade.balance);
-      setProfitLoss(latestTrade.balance - data.starting_balance);
-    } else {
-      setCurrentBalance(data.starting_balance);
+      if (tradesExecuted.length > 0) {
+        const latestTrade = tradesExecuted[tradesExecuted.length - 1];
+        setCurrentBalance(latestTrade.balance);
+        setProfitLoss(latestTrade.balance - data.starting_balance);
+      } else {
+        setCurrentBalance(data.starting_balance);
+        setProfitLoss(0);
+      }
+    } catch (error) {
+      console.error("Error updating balance:", error);
+      setCurrentBalance(data.starting_balance || 0);
       setProfitLoss(0);
     }
   }, [data, currentIndex]);

@@ -1,6 +1,5 @@
-
 import React, { useRef, useEffect, useState } from 'react';
-import { createChart, ColorType } from 'lightweight-charts';
+import { ChartOptions, createChart, DeepPartial, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { CandlestickData, Trade, BacktestData } from '@/lib/types';
 import { extractCandlestickData, detectTimeframe } from '@/lib/utils/dataUtils';
 import { Tooltip } from 'react-tooltip';
@@ -13,8 +12,8 @@ interface CandlestickChartProps {
 
 const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex, isPlaying }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const [chart, setChart] = useState<any | null>(null);
-  const [series, setSeries] = useState<any | null>(null);
+  const [chart, setChart] = useState<IChartApi | null>(null);
+  const [series, setSeries] = useState<ISeriesApi<"Candlestick"> | null>(null);
   const [candleData, setCandleData] = useState<CandlestickData[]>([]);
   const [timeframe, setTimeframe] = useState<string>('');
   
@@ -24,7 +23,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
     
     const chartOptions = {
       layout: {
-        background: { type: ColorType.Solid, color: 'rgba(13, 17, 23, 0)' },
+        background: { type: 'solid', color: 'rgba(13, 17, 23, 0)' }, // Use 'solid' directly
         textColor: '#C9D1D9',
       },
       grid: {
@@ -37,16 +36,18 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
         secondsVisible: false,
       },
       crosshair: {
-        mode: 1,
+        // Remove 'mode' property as it's causing the assertion error
         vertLine: {
           color: '#58A6FF',
-          style: 0, // Use numeric value instead of LineStyle enum
+          width: 1,
+          style: 1, // Use LineStyle.Solid (1) instead of 0
           visible: true,
           labelVisible: true,
         },
         horzLine: {
           color: '#58A6FF',
-          style: 0, // Use numeric value instead of LineStyle enum
+          width: 1,
+          style: 1, // Use LineStyle.Solid (1) instead of 0
           visible: true,
           labelVisible: true,
         },
@@ -60,15 +61,9 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
       ...chartOptions,
       width: chartContainerRef.current.clientWidth,
       height: 400,
-    });
+    } as DeepPartial<ChartOptions>);
     
-    // For lightweight-charts v5+
-    const candleSeries = newChart.addSeries({
-      type: 'Candlestick',
-      priceFormat: {
-        type: 'price',
-        precision: 2,
-      },
+    const candleSeries = newChart.addCandlestickSeries({
       upColor: '#25C685',
       downColor: '#EF5350',
       borderVisible: false,
@@ -122,13 +117,13 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
   
   // Update visible range based on current index
   useEffect(() => {
-    if (!chart || !candleData.length || currentIndex <= 0) return;
+    if (!chart || !candleData.length || currentIndex < 0) return;
     
     const visibleRange = 50; // Number of candles visible at once
-    const startIndex = Math.max(0, currentIndex - visibleRange / 2);
-    const endIndex = Math.min(candleData.length - 1, currentIndex + visibleRange / 2);
+    const startIndex = Math.max(0, currentIndex - Math.floor(visibleRange / 2));
+    const endIndex = Math.min(candleData.length - 1, currentIndex + Math.floor(visibleRange / 2));
     
-    if (startIndex <= endIndex) {
+    if (startIndex <= endIndex && candleData[startIndex] && candleData[endIndex]) {
       chart.timeScale().setVisibleRange({
         from: candleData[startIndex].time,
         to: candleData[endIndex].time,
@@ -138,9 +133,11 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
   
   // Render trade markers on chart
   const renderTradeMarkers = () => {
-    if (!data || !data.trade_history) return null;
+    if (!data || !data.trade_history || !candleData.length) return null;
     
     const visibleTrades = data.trade_history.filter(trade => {
+      if (!trade.open_time) return false;
+      
       const openTime = new Date(trade.open_time).getTime() / 1000;
       
       // Show trades that have opened by the current index
@@ -153,12 +150,10 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
     return (
       <>
         {visibleTrades.map((trade, index) => {
+          if (!trade.open_time) return null;
+          
           const openTimeIndex = candleData.findIndex(
             candle => Math.abs(candle.time - new Date(trade.open_time).getTime() / 1000) < 60
-          );
-          
-          const closeTimeIndex = candleData.findIndex(
-            candle => Math.abs(candle.time - new Date(trade.close_time).getTime() / 1000) < 60
           );
           
           // Only render entry markers for now (trade markers would be added in a full implementation)
@@ -171,6 +166,8 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
                   bottom: '20px',
                   left: `${(openTimeIndex / candleData.length) * 100}%`,
                 }}
+                data-tooltip-id="trade-tooltip"
+                data-tooltip-content={`${trade.order_type.toUpperCase()} at ${new Date(trade.open_time).toLocaleString()}`}
               >
                 <div className="w-2 h-2 rounded-full animate-pulse-glow" />
               </div>
@@ -188,14 +185,14 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
       <div className="flex justify-between items-center mb-3">
         <div>
           <span className="text-xs px-2 py-1 bg-trading-accent/10 rounded-full text-trading-accent">
-            {data.symbol}
+            {data.symbol || 'Unknown'}
           </span>
           <span className="ml-2 text-xs px-2 py-1 bg-trading-muted/10 rounded-full text-trading-muted">
-            {timeframe}
+            {timeframe || 'Unknown'}
           </span>
         </div>
         <div className="text-sm text-trading-muted">
-          {currentIndex >= 0 && currentIndex < candleData.length && (
+          {currentIndex >= 0 && currentIndex < candleData.length && candleData[currentIndex] && (
             <span>
               {new Date(candleData[currentIndex].time * 1000).toLocaleDateString()} 
               {' '}
