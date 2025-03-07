@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { ChartOptions, createChart, DeepPartial, IChartApi, ISeriesApi } from 'lightweight-charts';
-import { CandlestickData, Trade, BacktestData } from '@/lib/types';
+import { createChart, type IChartApi, type ISeriesApi, type CandlestickSeriesOptions } from 'lightweight-charts';
+import { type CandlestickData, type Trade, type BacktestData } from '@/lib/types';
 import { extractCandlestickData, detectTimeframe } from '@/lib/utils/dataUtils';
 import { Tooltip } from 'react-tooltip';
 
@@ -12,173 +12,90 @@ interface CandlestickChartProps {
 
 const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex, isPlaying }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const [chart, setChart] = useState<IChartApi | null>(null);
-  const [series, setSeries] = useState<ISeriesApi<"Candlestick"> | null>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const [candleData, setCandleData] = useState<CandlestickData[]>([]);
   const [timeframe, setTimeframe] = useState<string>('');
-  
+
   // Initialize chart
   useEffect(() => {
     if (!chartContainerRef.current) return;
-    
-    const chartOptions = {
+
+    const chart = createChart(chartContainerRef.current, {
+      width: chartContainerRef.current.clientWidth,
+      height: 400,
       layout: {
-        background: { type: 'solid', color: 'rgba(13, 17, 23, 0)' }, // Use 'solid' directly
+        background: { type: 'solid', color: 'rgba(13, 17, 23, 0)' },
         textColor: '#C9D1D9',
       },
-      grid: {
-        vertLines: { color: 'rgba(42, 46, 57, 0.2)' },
-        horzLines: { color: 'rgba(42, 46, 57, 0.2)' },
-      },
       timeScale: {
-        borderColor: 'rgba(197, 203, 206, 0.1)',
         timeVisible: true,
         secondsVisible: false,
       },
-      crosshair: {
-        // Remove 'mode' property as it's causing the assertion error
-        vertLine: {
-          color: '#58A6FF',
-          width: 1,
-          style: 1, // Use LineStyle.Solid (1) instead of 0
-          visible: true,
-          labelVisible: true,
-        },
-        horzLine: {
-          color: '#58A6FF',
-          width: 1,
-          style: 1, // Use LineStyle.Solid (1) instead of 0
-          visible: true,
-          labelVisible: true,
-        },
-      },
-      localization: {
-        priceFormatter: (price: number) => price.toFixed(2),
-      },
-    };
-    
-    const newChart = createChart(chartContainerRef.current, {
-      ...chartOptions,
-      width: chartContainerRef.current.clientWidth,
-      height: 400,
-    } as DeepPartial<ChartOptions>);
-    
-    const candleSeries = newChart.addCandlestickSeries({
+    });
+
+    const candleSeries = chart.addCandlestickSeries({
       upColor: '#25C685',
       downColor: '#EF5350',
       borderVisible: false,
       wickUpColor: '#25C685',
       wickDownColor: '#EF5350',
-    });
-    
-    setChart(newChart);
-    setSeries(candleSeries);
-    
-    // Handle resize
+    } as CandlestickSeriesOptions);
+
+    chartRef.current = chart;
+    seriesRef.current = candleSeries;
+
     const handleResize = () => {
-      if (newChart && chartContainerRef.current) {
-        newChart.applyOptions({
-          width: chartContainerRef.current.clientWidth,
-        });
-      }
+      chart.applyOptions({ width: chartContainerRef.current?.clientWidth || 800 });
     };
-    
+
     window.addEventListener('resize', handleResize);
-    
     return () => {
       window.removeEventListener('resize', handleResize);
-      if (newChart) {
-        newChart.remove();
-      }
+      chart.remove();
     };
   }, []);
-  
-  // Process data
+
+  // Process and update data
   useEffect(() => {
-    if (!data || !data.ohlc_history || !data.ohlc_history.length) return;
-    
-    const candles = extractCandlestickData(data.ohlc_history);
-    
-    // Ensure time is in the correct format (unix timestamp in seconds)
-    const formattedCandles = candles.map(candle => ({
-      ...candle,
-      time: Math.floor(new Date(candle.time).getTime() / 1000)
+    if (!data?.ohlc_history?.length || !seriesRef.current) return;
+
+    const processedData = data.ohlc_history.map(ohlc => ({
+      time: new Date(ohlc.time).getTime() / 1000, // Unix timestamp in seconds
+      open: ohlc.etf_open,
+      high: ohlc.etf_high,
+      low: ohlc.etf_low,
+      close: ohlc.etf_close,
     }));
-    
-    setCandleData(formattedCandles);
-    
-    const tf = detectTimeframe(data.ohlc_history);
-    setTimeframe(tf);
-    
-    if (series) {
-      series.setData(formattedCandles);
-    }
-  }, [data, series]);
-  
-  // Update visible range based on current index
+
+    setCandleData(processedData);
+    seriesRef.current.setData(processedData);
+    setTimeframe(detectTimeframe(data.ohlc_history));
+  }, [data]);
+
+  // Update visible range
   useEffect(() => {
-    if (!chart || !candleData.length || currentIndex < 0) return;
-    
-    const visibleRange = 50; // Number of candles visible at once
-    const startIndex = Math.max(0, currentIndex - Math.floor(visibleRange / 2));
-    const endIndex = Math.min(candleData.length - 1, currentIndex + Math.floor(visibleRange / 2));
-    
-    if (startIndex <= endIndex && candleData[startIndex] && candleData[endIndex]) {
-      chart.timeScale().setVisibleRange({
-        from: candleData[startIndex].time,
-        to: candleData[endIndex].time,
-      });
-    }
-  }, [chart, candleData, currentIndex]);
-  
-  // Render trade markers on chart
-  const renderTradeMarkers = () => {
-    if (!data || !data.trade_history || !candleData.length) return null;
-    
-    const visibleTrades = data.trade_history.filter(trade => {
-      if (!trade.open_time) return false;
-      
-      const openTime = new Date(trade.open_time).getTime() / 1000;
-      
-      // Show trades that have opened by the current index
-      if (currentIndex < 0 || currentIndex >= candleData.length) return false;
-      const currentTime = candleData[currentIndex].time;
-      
-      return openTime <= currentTime;
+    if (!chartRef.current || !candleData.length || currentIndex < 0) return;
+
+    const visibleCandles = 100;
+    const startIndex = Math.max(0, currentIndex - visibleCandles);
+    const endIndex = Math.min(candleData.length - 1, currentIndex + 10);
+
+    chartRef.current.timeScale().setVisibleRange({
+      from: candleData[startIndex].time as number,
+      to: candleData[endIndex].time as number,
     });
-    
-    return (
-      <>
-        {visibleTrades.map((trade, index) => {
-          if (!trade.open_time) return null;
-          
-          const openTimeIndex = candleData.findIndex(
-            candle => Math.abs(candle.time - new Date(trade.open_time).getTime() / 1000) < 60
-          );
-          
-          // Only render entry markers for now (trade markers would be added in a full implementation)
-          if (openTimeIndex >= 0 && openTimeIndex <= currentIndex) {
-            return (
-              <div 
-                key={`marker-entry-${index}`}
-                className={`absolute z-10 ${trade.order_type === 'buy' ? 'trade-marker-bullish' : 'trade-marker-bearish'}`}
-                style={{
-                  bottom: '20px',
-                  left: `${(openTimeIndex / candleData.length) * 100}%`,
-                }}
-                data-tooltip-id="trade-tooltip"
-                data-tooltip-content={`${trade.order_type.toUpperCase()} at ${new Date(trade.open_time).toLocaleString()}`}
-              >
-                <div className="w-2 h-2 rounded-full animate-pulse-glow" />
-              </div>
-            );
-          }
-          
-          return null;
-        })}
-      </>
-    );
-  };
+  }, [currentIndex, candleData]);
+
+  // Render optimization
+  const visibleTrades = React.useMemo(() => {
+    return data?.trade_history?.filter(trade => {
+      const openTime = new Date(trade.open_time).getTime() / 1000;
+      return currentIndex >= 0 && 
+             candleData[currentIndex]?.time && 
+             openTime <= candleData[currentIndex].time;
+    }) || [];
+  }, [data, currentIndex, candleData]);
 
   return (
     <div className="glass-card rounded-xl p-4 animate-fade-in-up">
@@ -192,20 +109,12 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
           </span>
         </div>
         <div className="text-sm text-trading-muted">
-          {currentIndex >= 0 && currentIndex < candleData.length && candleData[currentIndex] && (
-            <span>
-              {new Date(candleData[currentIndex].time * 1000).toLocaleDateString()} 
-              {' '}
-              {new Date(candleData[currentIndex].time * 1000).toLocaleTimeString()}
-            </span>
-          )}
+          {candleData[currentIndex]?.time && 
+            new Date(candleData[currentIndex].time * 1000).toLocaleString()}
         </div>
       </div>
       
-      <div className="relative">
-        <div ref={chartContainerRef} className="h-[400px] w-full" />
-        {renderTradeMarkers()}
-      </div>
+      <div className="relative h-[400px] w-full" ref={chartContainerRef} />
       
       <Tooltip id="trade-tooltip" className="z-50" />
     </div>

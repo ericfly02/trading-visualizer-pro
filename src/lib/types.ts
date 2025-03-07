@@ -25,6 +25,7 @@ export interface OHLCData {
 }
 
 export interface Trade {
+  fill_price: any;
   state: string;
   symbol: string;
   order_type: "buy" | "sell";

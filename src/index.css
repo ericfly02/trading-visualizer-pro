@@ -104,3 +104,20 @@ html, body, #root {
 .delay-300 { animation-delay: 300ms; }
 .delay-400 { animation-delay: 400ms; }
 .delay-500 { animation-delay: 500ms; }
+
+.trade-marker-bullish {
+  color: #25C685;
+}
+
+.trade-marker-bearish {
+  color: #EF5350;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}

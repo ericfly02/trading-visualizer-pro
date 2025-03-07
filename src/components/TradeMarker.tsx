@@ -28,7 +28,11 @@ const TradeMarker: React.FC<TradeMarkerProps> = ({ trade, position, type }) => {
       data-tooltip-id="trade-tooltip"
       data-tooltip-html={formatTradeTooltip(trade)}
     >
-      <Triangle className={`w-6 h-6 ${markerClass}`} />
+    <Triangle 
+      className={`w-6 h-6 ${markerClass}`}
+      fill={isPointingUp ? 'currentColor' : 'currentColor'}
+      strokeWidth={1.5}
+    />
     </div>
   );
 };
