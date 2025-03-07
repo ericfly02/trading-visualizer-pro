@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { createChart, type IChartApi, type ISeriesApi, type CandlestickSeriesOptions, type SeriesMarker } from 'lightweight-charts';
 import { type CandlestickData, type Trade, type BacktestData } from '@/lib/types';
 import { extractCandlestickData, detectTimeframe } from '@/lib/utils/dataUtils';
+import { LineStyle } from 'lightweight-charts';
 
 interface CandlestickChartProps {
   data: BacktestData;
@@ -34,6 +35,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const lineSeriesRef = useRef<ISeriesApi<'Line'>[]>([]);
   const [candleData, setCandleData] = useState<CandlestickData[]>([]);
   const [timeframe, setTimeframe] = useState<string>('');
   const [processedTrades, setProcessedTrades] = useState<Array<Trade & { openIndex: number; closeIndex: number }>>([]);
@@ -81,6 +83,9 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
   useEffect(() => {
     if (!data?.ohlc_history?.length || !seriesRef.current) return;
 
+    lineSeriesRef.current.forEach(series => chartRef.current?.removeSeries(series));
+    lineSeriesRef.current = [];
+
     const formattedData = data.ohlc_history.map(ohlc => ({
       // Parse time as UTC
       time: Date.parse(ohlc.time + 'Z') / 1000,
@@ -104,6 +109,39 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, currentIndex,
         closeIndex: findNearestIndex(sortedTimes, closeTime),
       };
     }).filter(t => t.openIndex !== -1 && t.closeIndex !== -1);
+
+    // Add trend lines for each trade
+    tradesWithIndices.forEach(trade => {
+      if (!chartRef.current) return;
+
+      const isLong = trade.order_type === 'buy';
+      const isProfitable = trade.profit_net >= 0;
+      
+      const lineSeries = chartRef.current.addLineSeries({
+        color: isProfitable ? '#25C685' : '#EF5350',
+        lineWidth: 1,
+        lineStyle: isLong ? LineStyle.Solid : LineStyle.Dashed,
+        crosshairMarkerVisible: false,
+      });
+
+      // Add these guards before setting line data
+      const openCandle = formattedData[trade.openIndex];
+      const closeCandle = formattedData[trade.closeIndex];
+      if (!openCandle || !closeCandle) return;
+
+      lineSeries.setData([
+        { 
+          time: openCandle.time,
+          value: trade.open_price
+        },
+        { 
+          time: closeCandle.time,
+          value: trade.close_price
+        }
+      ]);
+
+      lineSeriesRef.current.push(lineSeries);
+    });
 
     setProcessedTrades(tradesWithIndices);
     setCandleData(formattedData);

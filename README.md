@@ -1,69 +1,48 @@
-# Welcome to your Lovable project
+# Backtest Interface - Creda Capital
 
-## Project info
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+![React](https://img.shields.io/badge/React-18.2-%2361DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-%233178C6)
 
-**URL**: https://lovable.dev/projects/023bf327-6837-4fc0-ae8f-11cf07fcf10c
+Advanced financial backtesting visualization platform for analyzing trading strategies with precision.
 
-## How can I edit this code?
+![Backtest Interface Preview](./public/screenshot.png)
 
-There are several ways of editing your application.
+## Features
 
-**Use Lovable**
+- 📊 Interactive candlestick chart visualization with Lightweight Charts
+- 🎯 Trade entry/exit markers with profit/loss indicators
+- 📈 Real-time balance tracking with performance metrics
+- 📂 JSON data import for historical strategy analysis
+- ⚡ Responsive design with smooth animations
+- 🕰️ Timeframe detection and adaptive visualization
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/023bf327-6837-4fc0-ae8f-11cf07fcf10c) and start prompting.
+## Technologies
 
-Changes made via Lovable will be committed automatically to this repo.
+**Core Stack:**
+- ⚛️ React 18 + TypeScript
+- 📈 Lightweight Charts
+- 🎨 shadcn-ui + Tailwind CSS
+- 🚀 Vite Build System
 
-**Use your preferred IDE**
+**Key Libraries:**
+- date-fns for date manipulation
+- Lucide React for icons
+- react-router-dom for navigation
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Getting Started
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Prerequisites
+- Node.js 18+ & npm 9+
 
-Follow these steps:
+### Installation
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+```bash
+# Clone repository
+git clone https://github.com/creda-capital/backtest-interface.git
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Install dependencies
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with .
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/023bf327-6837-4fc0-ae8f-11cf07fcf10c) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
